@@ -1,7 +1,7 @@
 # SageMaker Edge Manager demo: Mini wind turbine farm
 ## A DIY project to explore ML@Edge with SageMaker
 
- > This repo is part of an AWS Blog post (will be published soon).
+ > This repo is part of a Blog post that will be published soon. The environment configuration will be described there. While you wait for the blog, feel free to explore this repo and the workshop (linked in the DISCLAIMER). As soon as the blog is out, this repo will be updated.
 
 **TL:DR**: [Mini 3D printed wind turbines - assembling instructions](ASSEMBLING.md)
 
