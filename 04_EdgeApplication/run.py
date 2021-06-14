@@ -35,20 +35,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     logging.basicConfig(level=logging.DEBUG if args.debug else logging.INFO )
     logging.debug("Parsing parameters")
-
-    # load sagemaker edge agent config file
-    iot_params = json.loads(open(args.sagemaker_edge_configfile_path, 'r').read())
-
-    # retrieve the IoT thing name associated with the edge device
-    iot_client = turbine.get_client('iot', iot_params)
-    sm_client = turbine.get_client('sagemaker', iot_params)
-    resp = sm_client.describe_device(
-        DeviceName=iot_params['sagemaker_edge_core_device_uuid'], 
-        DeviceFleetName=iot_params['sagemaker_edge_core_device_fleet_name']
-    )    
-    device_name = resp['IotThingName']
-    mqtt_host=iot_client.describe_endpoint(endpointType='iot:Data-ATS')['endpointAddress']
-    mqtt_port=8883
+    
+    # Use Greengrass SDK to communicate with AWS IoT Core
 
     # buffer size required to process timeseries data
     PREDICTIONS_INTERVAL = 1.0 # interval in seconds between the predictions
@@ -72,22 +60,6 @@ if __name__ == '__main__':
 
     # Initialize the Edge Manager agent
     edge_agent = turbine.EdgeAgentClient(args.agent_socket)
-    
-    model_loaded = False
-    model_name = None
-    def model_update_callback(name, version):
-        global model_loaded, model_name
-        model_version=str(version)
-        model_name = "%s-%s" % (name, model_version.replace('.', '-')) 
-        logging.info('New model deployed: %s - %s - %s' % (name, model_version, model_name))
-        resp = edge_agent.load_model(model_name, os.path.join(args.model_path, name, model_version))
-        if resp is None: 
-            logging.error('It was not possible to load the model. Is the agent running?')
-            return
-        model_loaded = True 
-
-    ## Initialize the OTA Model Manager
-    model_manager = turbine.OTAModelUpdate(device_name, iot_params, mqtt_host, mqtt_port, model_update_callback, args.model_path)
    
     ## Initialize sensors reader
     if args.test_mode:
