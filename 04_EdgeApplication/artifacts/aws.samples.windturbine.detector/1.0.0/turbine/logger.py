@@ -4,28 +4,23 @@ import threading
 import json
 import logging
 import turbine.util as util
+import turbine.ggv2_client as ggv2_client
+import traceback
+
+logger = logging.getLogger(__name__)
 
 class Logger(object):    
-    def __init__(self, device_name, iot_params):
+    def __init__(self, device_name):
         '''
             This class is responsible for sending application logs
             to the cloud via MQTT and IoT Topics
         '''
         self.device_name = device_name
-        logging.info("Device Name: %s" % self.device_name)
-        self.iot_params = iot_params
-
-        self.__update_credentials()
+        logger.info("Device Name: %s" % self.device_name)
+        self.ggv2_client = ggv2_client
 
         self.logs_buffer = []
         self.__log_lock = threading.Lock()
-
-    def __update_credentials(self):
-        '''
-            Get new temp credentials
-        '''
-        logging.info("Getting the IoT Credentials")
-        self.iot_data_client = util.get_client('iot-data', self.iot_params)
 
     def __run_logs_upload_job__(self):        
         '''
@@ -43,13 +38,12 @@ class Logger(object):
         f = json.dumps({'logs': self.logs_buffer})
         self.logs_buffer = [] # clean the buffer
         try:
-            self.iot_data_client.publish( topic='wind-turbine/logs/%s' % self.device_name, payload=f.encode('utf-8') )
+            self.ggv2_client.publish( topic='wind-turbine/logs/%s' % self.device_name, message=f.encode("utf8"), qos=ggv2_client.QOS.AT_LEAST_ONCE )
         except Exception as e:
-            logging.error(e)
-            self.__update_credentials()
-            self.iot_data_client.publish( topic='wind-turbine/logs/%s' % self.device_name, payload=f.encode('utf-8') )
-
-        logging.info("New log file uploaded. len: %d" % len(f))
+            traceback.print_exc()
+            logger.error(e)
+            
+        logger.info("New log file uploaded. len: %d" % len(f))
         self.__log_lock.release()
  
     def publish_logs(self, data):

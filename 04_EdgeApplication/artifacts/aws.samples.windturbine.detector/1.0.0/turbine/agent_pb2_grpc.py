@@ -157,6 +157,7 @@ class AgentServicer(object):
         6. RESOURCE_EXHAUSTED - buffer is full cannot accept any more requests.
         7. OUT_OF_RANGE - timestamp is in the future.
         8. INVALID_ARGUMENT - capture_id is not of expected format or input tensor paramater is invalid
+        9. FAILED_PRECONDITION - Indicates failed network access, when using cloud for capture data.
 
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)

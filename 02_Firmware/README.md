@@ -7,7 +7,7 @@ If you never used Arduino Before, please visit [this link](https://www.arduino.c
 We need to clone and prepare two .zip files with the libraries: MPU6050 and I2CDev. Run the following Bash code to get the library and create the packages.
 
 ```bash
-# cloning the libaries repo
+# cloning the libraries repo
 git clone https://github.com/jrowberg/i2cdevlib
 
 cd i2cdevlib/Arduino/I2Cdev
@@ -17,7 +17,7 @@ zip -r ../../../MPU6050.zip *
 
 ```
 
-### Instaling the required libraries
+### Installing the required libraries
 
 In your **Arduino IDE**:
   1. Click on **Sketch** --> **Include Library** --> **Manage Libraries...**

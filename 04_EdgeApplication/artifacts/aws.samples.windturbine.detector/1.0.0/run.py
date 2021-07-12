@@ -11,10 +11,13 @@ import argparse
 import time
 import requests
 import gzip
+import sys
+import turbine.ggv2_client as ggv2
 
 import turbine
 
 from datetime import datetime
+
 
 if __name__ == '__main__':
     # parse the input parameters    
@@ -25,16 +28,16 @@ if __name__ == '__main__':
     parser.add_argument("--debug", action="store_true", help='Enable debugging messages')    
 
     parser.add_argument('--agent-socket', type=str, default="/tmp/edge_agent", help='The unix socket path created by the agent')
-    parser.add_argument('--model-path', type=str, default=os.path.join(os.environ["SM_EDGE_AGENT_HOME"], 'models'), help='Absolute path to the model dir')
+    parser.add_argument('--model-path', type=str, default='models', help='Absolute path to the model dir')
 
     parser.add_argument('--serial-port', type=str, default="/dev/ttyUSB0", help='Path to the USB port used by the wind turbine')
     parser.add_argument('--serial-baud', type=int, default=115200, help='Serial comm. speed in bits per second')
 
-    parser.add_argument('--sagemaker-edge-configfile-path', type=str, default=os.path.join(os.environ["SM_EDGE_AGENT_HOME"], "sagemaker_edge_config.json"), help='Path to the agent config file')
-
     args = parser.parse_args()
     logging.basicConfig(level=logging.DEBUG if args.debug else logging.INFO )
-    logging.debug("Parsing parameters")
+    log = logging.getLogger('main')
+    
+    log.debug("Parsing parameters")
     
     # Use Greengrass SDK to communicate with AWS IoT Core
 
@@ -49,21 +52,44 @@ if __name__ == '__main__':
     NUM_FEATURES = 6
 
     # Some constants used for data prep + compare the results
-    thresholds = np.load('statistics/thresholds.npy')
-    raw_std = np.load('statistics/raw_std.npy')
-    mean = np.load('statistics/mean.npy')
-    std = np.load('statistics/std.npy')
+    script_path = os.path.dirname(sys.argv[0])
+    thresholds = np.load(os.path.join(script_path, 'statistics/thresholds.npy'))
+    raw_std = np.load(os.path.join(script_path,'statistics/raw_std.npy'))
+    mean = np.load(os.path.join(script_path,'statistics/mean.npy'))
+    std = np.load(os.path.join(script_path,'statistics/std.npy'))
 
-    logging.info("Initializing...")
+    device_name = os.environ['AWS_IOT_THING_NAME']
+    log.info("Initializing...")
     # Sends the logs to the cloud via MQTT Topics
-    logger = turbine.Logger(device_name, iot_params)
+    logger = turbine.Logger(device_name)
 
     # Initialize the Edge Manager agent
     edge_agent = turbine.EdgeAgentClient(args.agent_socket)
    
+    model_loaded = False
+    model_name = 'windturbines'
+    with open(os.path.join(args.model_path, 'sagemaker_edge_manifest')) as f:
+        manifest = json.load(f)
+    resp = edge_agent.load_model(model_name, args.model_path)
+    if resp is None: 
+        log.error('It was not possible to load the model. Is the agent running?')
+        sys.exit(1)
+    model_loaded = True 
+
+    def model_update_callback(name, version):
+        global model_loaded, model_name
+        model_version=str(version)
+        model_name = "%s-%s" % (name, model_version.replace('.', '-')) 
+        log.info('New model deployed: %s - %s - %s' % (name, model_version, model_name))
+        resp = edge_agent.load_model(model_name, os.path.join(args.model_path, name, model_version))
+        if resp is None: 
+            log.error('It was not possible to load the model. Is the agent running?')
+            return
+        model_loaded = True 
+
     ## Initialize sensors reader
     if args.test_mode:
-        logging.info('Using Dummy sensors readings')
+        log.info('Using Dummy sensors readings')
         # use a local file to simulate the raw data collected from the turbine's sensors
         if not os.path.exists('dataset_wind.csv'):
             req = requests.get('https://aws-ml-blog.s3.amazonaws.com/artifacts/monitor-manage-anomaly-detection-model-wind-turbine-fleet-sagemaker-neo/dataset_wind_turbine.csv.gz')
@@ -86,19 +112,20 @@ if __name__ == '__main__':
 
         turbine_sensors = DummySensors()
     else:
-        logging.info('Reading from the sensors of the turbine')
+        log.info('Reading from the sensors of the turbine')
         # Initialize the turbine program
         turbine_sensors = serial.Serial(port=args.serial_port, baudrate=args.serial_baud)
 
-    logging.info("Defining parameters")
+    log.info("Defining parameters")
 
     # main loop
     samples = []
-    logging.info("Starting main loop..")
+    log.info("Starting main loop..")
     try:
+        ggv2.set_running()
         while turbine_sensors.isOpen(): # runs while it communicates with the arduino
             if not model_loaded:
-                logging.info("Waiting for the model...")
+                log.info("Waiting for the model...")
                 time.sleep(5)
                 continue
 
@@ -111,7 +138,7 @@ if __name__ == '__main__':
                 # check if the format is correct
                 if len(tokens) != NUM_RAW_FEATURES:
                     print(data)
-                    logging.error('Wrong # of features. Expected: %d, Got: %d' % ( NUM_RAW_FEATURES, len(tokens)))
+                    log.error('Wrong # of features. Expected: %d, Got: %d' % ( NUM_RAW_FEATURES, len(tokens)))
                     time.sleep(1)
                     continue
                 if args.inject_noise:
@@ -124,8 +151,8 @@ if __name__ == '__main__':
                 # get only the used features
                 data = [float(tokens[i]) for i in FEATURES_IDX]
             except Exception as e:
-                logging.error(e)
-                logging.error(data)
+                log.error(e)
+                log.error(data)
                 continue
 
 
@@ -140,7 +167,7 @@ if __name__ == '__main__':
 
             if len(samples) <= MIN_NUM_SAMPLES:
                 if len(samples) % 10 == 0:
-                    logging.info('Buffering %d/%d... please wait' % (len(samples), MIN_NUM_SAMPLES))
+                    log.info('Buffering %d/%d... please wait' % (len(samples), MIN_NUM_SAMPLES))
                 # buffering
                 continue
 
@@ -169,19 +196,19 @@ if __name__ == '__main__':
             edge_agent.capture_data(model_name, values.astype(np.float32), anomalies.astype(np.float32))
 
             if anomalies.any():
-                logging.info("Anomaly detected: %s" % anomalies)
+                log.info("Anomaly detected: %s" % anomalies)
             else:
-                logging.info("Ok")
+                log.info("Ok")
 
             time.sleep(PREDICTIONS_INTERVAL)
     except KeyboardInterrupt as e:
         pass
     except Exception as e:
-        logging.error(e)
+        log.error(e)
      
-    logging.info("Shutting down")
+    log.info("Shutting down")
     if model_loaded: edge_agent.unload_model(model_name)
-    del model_manager
+    #del model_manager
     del edge_agent
     del logger
     turbine_sensors.close()

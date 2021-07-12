@@ -1,0 +1,23 @@
+---
+RecipeFormatVersion: "2020-01-25"
+ComponentName: aws.samples.windturbine.detector.venv
+ComponentVersion: 1.0.0
+ComponentDescription: Virtual Environment for Turbine Detector component
+ComponentPublisher: Amazon.com
+Manifests:
+  - Platform:
+      os: linux
+      architecture: aarch64
+    Lifecycle:
+      Install: 
+        Script: |-
+          rm -rf venv
+          python3 -m venv venv
+          . venv/bin/activate
+          pip3 install --upgrade pip 
+          python3 -m pip install --upgrade setuptools 
+          pip3 install wheel  
+          pip3 install awsiotsdk==1.6.0 requests
+          pip3 install grpcio==1.38.0 grpcio-tools==1.38.0
+          pip3 install pySerial==3.5 PyWavelets==1.1.1
+        Timeout: 600

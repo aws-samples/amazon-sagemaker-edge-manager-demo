@@ -1,0 +1,46 @@
+---
+RecipeFormatVersion: "2020-01-25"
+ComponentName: aws.samples.windturbine.detector
+ComponentVersion: 1.0.0
+ComponentDescription: Detects anomalies for wind turbines
+ComponentPublisher: Amazon.com
+ComponentConfiguration:
+  DefaultConfiguration:
+    FLAGS: "--test-mode --inject-noise"
+    accessControl:
+      aws.greengrass.ipc.mqttproxy: 
+        policy_1:
+          policyDescription: My policy
+          operations:
+            - aws.greengrass#PublishToIoTCore
+          resources:
+            - "*"
+      
+ComponentDependencies: 
+  aws.greengrass.SageMakerEdgeManager:
+    VersionRequirement: 1.0.0
+  aws.samples.windturbine.model:
+    VersionRequirement: "~1.0.0"
+    DependencyType: HARD
+  aws.samples.windturbine.detector.venv:
+    VersionRequirement: "~1.0.0"
+    DependencyType: HARD
+Manifests:
+  - Platform:
+      os: linux
+      architecture: aarch64
+    Lifecycle:
+      Run:
+        Script: |-
+          . {aws.samples.windturbine.detector.venv:work:path}/venv/bin/activate
+          export TVM_TENSORRT_MAX_WORKSPACE_SIZE=2147483647
+          export OPENBLAS_CORETYPE=ARMV8
+          echo "Flags" {configuration:/FLAGS}
+          python3 -u {artifacts:decompressedPath}/detector/run.py {configuration:/FLAGS} \
+             --agent-socket {aws.greengrass.SageMakerEdgeManager:configuration:/UnixSocketName} --model-path {aws.samples.windturbine.model:work:path}
+      Shutdown: rm -rf *
+    Artifacts:
+      - Uri: s3://_BUCKET_/aws.samples.windturbine.detector/1.0.0/detector.zip
+        Unarchive: ZIP
+        Permission:
+          Execute: OWNER

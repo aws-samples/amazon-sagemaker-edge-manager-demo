@@ -37,8 +37,8 @@ class EdgeAgentClient(object):
             req = agent.CaptureDataRequest()
             req.model_name = model_name
             req.capture_id = str(uuid.uuid4())
-            req.input_tensors.append( self.create_tensor(input_data, 'input') )
-            req.output_tensors.append( self.create_tensor(output_data, 'output' ) )
+            req.input_tensors.append( self.create_tensor(input_data, 'input'.encode('utf8')) )
+            req.output_tensors.append( self.create_tensor(output_data, 'output'.encode('utf8') ) )
             resp = self.agent.CaptureData(req)
         except Exception as e:
             logging.error(e)

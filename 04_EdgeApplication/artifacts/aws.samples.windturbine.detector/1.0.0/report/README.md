@@ -2,12 +2,12 @@
 
 If you want to visualize the anomalies and the logs, you can use one these lambda functions to ingest data into Elasticsearch or CloudWatch Logs.
 
-The lambdas need to be 'configured' to capture 'Put' events in the S3 bucket, used by SageMaker Edge Agent to store data (CaptureData). For each Json lines file stored in this bucket the Lambda function will parse it and send the data to the chosen report tool. Also, for the application logs, sent by the application to an MQTT topic, you need to configure an IoT Rule that will capture the data (with the following query) and invoke the same Lamda function:
+The lambdas need to be 'configured' to capture 'Put' events in the S3 bucket, used by SageMaker Edge Agent to store data (CaptureData). For each Json lines file stored in this bucket the Lambda function will parse it and send the data to the chosen report tool. Also, for the application logs, sent by the application to an MQTT topic, you need to configure an IoT Rule that will capture the data (with the following query) and invoke the same Lambda function:
 ```sql
 SELECT 'logs' as msg_type, topic(3) as device_name, * FROM 'wind-turbine/logs/#' 
 ```
 
-## Elastisearch + Kibana
+## Elasticsearch + Kibana
 You need to create two indices in your Elasticsearch first. In the Kibana console, go to 'Dev Tools', copy and paste the following content and run:
 ```html
 PUT wind_turbine_logs
