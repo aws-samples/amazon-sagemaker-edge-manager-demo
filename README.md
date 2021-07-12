@@ -5,6 +5,8 @@
 
 **TL:DR**: [Mini 3D printed wind turbines - assembling instructions](ASSEMBLING.md)
 
+> **2021-06-18 NEW**: With the release of SageMaker Edge Manager support in AWS Greengrass v2, we have created a separate branch of this demo. Check it out by doing `git pull & git checkout greengrass`
+
 **DISCLAIMER**: If you don't have a 3D printer or the skills to build your own fleet of wind turbines, don't worry. You can still run the application in demonstration mode. Also, there is a [SageMaker Edge Manager Workshop](https://github.com/aws-samples/amazon-sagemaker-edge-manager-workshop) where you will be able to run a similar experiment but with a Simulator! :)
 
 In this project you'll see how to build a **Mini Wind Turbine Farm**, to experiment with Machine Learning (@ Edge). With a 3D printer and some electronic components you can create a mini Wind Turbine with sensors and a small generator. This project is not intended to be a real-life electricity generator. It's just a device for testing/experimenting real-time and low latency machine learning on edge devices. It was created to demonstrate the capabilities of Amazon SageMaker Edge Manager.
