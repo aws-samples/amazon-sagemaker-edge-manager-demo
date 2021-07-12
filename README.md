@@ -3,6 +3,8 @@
 
  > This repo is part of the blog post [Monitor and Manage Anomaly Detection Models on a fleet of Wind Turbines with Amazon SageMaker Edge Manager](https://aws.amazon.com/blogs/machine-learning/monitor-and-manage-anomaly-detection-models-on-a-fleet-of-wind-turbines-with-amazon-sagemaker-edge-manager/). If you want to implement the full solution, please follow the configuration steps described in the blog post and prepare your AWS account.
 
+> We just added instructions to deploy the models to the devices using AWS IoT Greengrass. Checkout the `greengrass` branch to try it out. 
+
 **TL:DR**: [Mini 3D printed wind turbines - assembling instructions](ASSEMBLING.md)
 
 **DISCLAIMER**: If you don't have a 3D printer or the skills to build your own fleet of wind turbines, don't worry. You can still run the application in demonstration mode. Also, there is a [SageMaker Edge Manager Workshop](https://github.com/aws-samples/amazon-sagemaker-edge-manager-workshop) where you will be able to run a similar experiment but with a Simulator! :)
